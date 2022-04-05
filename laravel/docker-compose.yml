@@ -1,0 +1,57 @@
+version: "3.2"
+
+services:
+
+  livewire:
+    build:
+      context: './php/'
+      args:
+       USER: ${DOCKER_USER}
+       USER_ID: ${USER_ID}
+       GROUP_ID: ${GROUP_ID}
+       NODE_VERSION: ${NODE_VERSION}
+    depends_on:
+      - livewiredb
+    networks:
+      - travellist
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.livewire.rule=Host(`livewire.localhost`,`livewire.neptune`)"
+      - "traefik.http.routers.livewire.entryPoints=insecure"
+    volumes:
+      - ./www/:/var/www/html/
+    container_name: "${PHP_NAME}"
+
+  livewiredb:
+    image: mariadb:${MARIADB_VERSION:-latest}
+    networks:
+      - travellist
+    volumes:
+      - ./mariadb:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USERNAME}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    container_name: "${MARIADB_NAME}"
+
+  adminer:
+    image: adminer:latest
+    # restart: always
+    networks:
+      - travellist
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.rule=Host(`adminer.localhost`,`adminer.neptune`)"
+      - "traefik.http.routers.adminer.entryPoints=insecure"
+      - "traefik.http.services.adminer.loadbalancer.server.port=8080"
+    container_name: "adminer"
+
+networks:
+  travellist:
+    external:
+      name: traefik_webgateway
